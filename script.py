@@ -207,4 +207,9 @@ def run(filename):
             varyFound=True
             #if not frameFound(filename):
                 #exit()
+    if varyFound and not frameFound:
+        exit()
+    if frameFound and not fileFound:
+        basename="anim"
+        print "Default filename: 'anim'"
 run("test.mdl")
