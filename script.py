@@ -19,7 +19,7 @@ from draw import *
   with the name being used.
   ==================== """
 def first_pass( commands ):
-    pass
+    print commands
 
 """======== second_pass( commands ) ==========
 
@@ -41,11 +41,45 @@ def first_pass( commands ):
 def second_pass( commands, num_frames ):
     pass
 
+# def frameFound(filename):
+#     toRet=False
+#     p = mdl.parseFile(filename)
+#     if p:
+#         (commands, symbols) = p
+#     else:
+#         print "Parsing failed."
+#         return
+#     for command in commands:
+#         print command
+#         c = command['op']
+#         args = command['args']
+#         if c=="frames":
+#             toRet=True
+#     return toRet
 
+# def basenameFound(filename):
+#     toRet=False
+#     p = mdl.parseFile(filename)
+#     if p:
+#         (commands, symbols) = p
+#     else:
+#         print "Parsing failed."
+#         return
+#     for command in commands:
+#         print command
+#         c = command['op']
+#         args = command['args']
+#         if c=="basename":
+#             toRet=True
+#     return toRet
+    
 def run(filename):
     """
     This function runs an mdl script
     """
+    frameFound=False
+    varyFound=False
+    fileFound=False
     view = [0,
             0,
             1];
@@ -88,7 +122,6 @@ def run(filename):
     else:
         print "Parsing failed."
         return
-
     for command in commands:
         print command
         c = command['op']
@@ -161,3 +194,17 @@ def run(filename):
             display(screen)
         elif c == 'save':
             save_extension(screen, args[0])
+        elif c=='frames':
+            frameFound=True
+            num_frames=args
+            #if not basenameFound(filename):
+                #basename="anim"
+                #print "Default filename: 'anim'"
+        elif c=='basename':
+            baseFound=True
+            basename=args
+        elif c=='vary':
+            varyFound=True
+            #if not frameFound(filename):
+                #exit()
+run("test.mdl")
