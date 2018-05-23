@@ -19,12 +19,35 @@ from draw import *
   with the name being used.
   ==================== """
 def first_pass( commands ):
-    print commands
+    frameFound=False
+    varyFound=False
+    fileFound=False
+    for command in commands:
+        c = command['op']
+        if c=='frames':
+            frameFound=True
+            num_frames=args
+            #if not basenameFound(filename):
+                #basename="anim"
+                #print "Default filename: 'anim'"
+        elif c=='basename':
+            baseFound=True
+            basename=args
+        elif c=='vary':
+            varyFound=True
+            #if not frameFound(filename):
+                #exit()
+    if varyFound and not frameFound:
+        exit()
+    if frameFound and not fileFound:
+        basename="anim"
+        print "Default filename: 'anim'"
+    #print commands
 
 """======== second_pass( commands ) ==========
 
   In order to set the knobs for animation, we need to keep
-  a seaprate value for each knob for each frame. We can do
+  a separate value for each knob for each frame. We can do
   this by using an array of dictionaries. Each array index
   will correspond to a frame (eg. knobs[0] would be the first
   frame, knobs[2] would be the 3rd frame and so on).
@@ -36,10 +59,27 @@ def first_pass( commands ):
   Go through the command array, and when you find vary, go
   from knobs[0] to knobs[frames-1] and add (or modify) the
   dictionary corresponding to the given knob with the
-  appropirate value.
+  appropriate value.
   ===================="""
+
+#symbol table: {'spinny': ['knob', 0], 'bigenator': ['knob', 0]}
+#commands: {'knob': 'bigenator', 'args': [50.0, 99.0, 1.0, 0.0], 'op': 'vary'}]
+
 def second_pass( commands, num_frames ):
-    pass
+    knobs=[]   
+    for i in range(num_frames):
+        knobs.append({})
+    for command in commands:
+        if command["op"]=="vary":
+            knobname=command["knob"]
+            args=command["args"]
+            startFrame=args[0]
+            endFrame=args[1]
+            start=args[2]
+            end=args[3]
+        j=startFrame
+        while j<endFrame:
+            knobs[j][knobname]=[] #dict
 
 # def frameFound(filename):
 #     toRet=False
@@ -77,9 +117,6 @@ def run(filename):
     """
     This function runs an mdl script
     """
-    frameFound=False
-    varyFound=False
-    fileFound=False
     view = [0,
             0,
             1];
@@ -119,11 +156,12 @@ def run(filename):
 
     if p:
         (commands, symbols) = p
+        print commands
+        #print symbols
     else:
         print "Parsing failed."
         return
     for command in commands:
-        print command
         c = command['op']
         args = command['args']
 
@@ -194,22 +232,22 @@ def run(filename):
             display(screen)
         elif c == 'save':
             save_extension(screen, args[0])
-        elif c=='frames':
-            frameFound=True
-            num_frames=args
-            #if not basenameFound(filename):
-                #basename="anim"
-                #print "Default filename: 'anim'"
-        elif c=='basename':
-            baseFound=True
-            basename=args
-        elif c=='vary':
-            varyFound=True
-            #if not frameFound(filename):
-                #exit()
-    if varyFound and not frameFound:
-        exit()
-    if frameFound and not fileFound:
-        basename="anim"
-        print "Default filename: 'anim'"
-run("test.mdl")
+    #     elif c=='frames':
+    #         frameFound=True
+    #         num_frames=args
+    #         #if not basenameFound(filename):
+    #             #basename="anim"
+    #             #print "Default filename: 'anim'"
+    #     elif c=='basename':
+    #         baseFound=True
+    #         basename=args
+    #     elif c=='vary':
+    #         varyFound=True
+    #         #if not frameFound(filename):
+    #             #exit()
+    # if varyFound and not frameFound:
+    #     exit()
+    # if frameFound and not fileFound:
+    #     basename="anim"
+    #     print "Default filename: 'anim'"
+run("simple_anim.mdl")
