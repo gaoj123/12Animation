@@ -3,6 +3,10 @@ from display import *
 from matrix import *
 from draw import *
 
+basename=""
+num_frames=0
+knobs=[]
+
 """======== first_pass( commands, symbols ) ==========
 
   Checks the commands array for any animation commands
@@ -22,21 +26,21 @@ def first_pass( commands ):
     frameFound=False
     varyFound=False
     fileFound=False
+    global num_frames
+    global basename
     for command in commands:
         c = command['op']
         if c=='frames':
             frameFound=True
-            num_frames=args
+            num_frames=command["args"][0]
             #if not basenameFound(filename):
                 #basename="anim"
                 #print "Default filename: 'anim'"
         elif c=='basename':
             baseFound=True
-            basename=args
+            basename=command["args"]
         elif c=='vary':
             varyFound=True
-            #if not frameFound(filename):
-                #exit()
     if varyFound and not frameFound:
         exit()
     if frameFound and not fileFound:
@@ -66,8 +70,8 @@ def first_pass( commands ):
 #commands: {'knob': 'bigenator', 'args': [50.0, 99.0, 1.0, 0.0], 'op': 'vary'}]
 
 def second_pass( commands, num_frames ):
-    knobs=[]   
-    for i in range(num_frames):
+    global knobs
+    for i in range(int(num_frames)):
         knobs.append({})
     for command in commands:
         if command["op"]=="vary":
@@ -77,42 +81,19 @@ def second_pass( commands, num_frames ):
             endFrame=args[1]
             start=args[2]
             end=args[3]
-        j=startFrame
-        while j<endFrame:
-            knobs[j][knobname]=[] #dict
+            print str(start)+ " "+str(end)+" "+str(num_frames)
+            toVary=(end-start+0.0)/(endFrame-startFrame)
+            print str(toVary)
+            if startFrame>num_frames-1 or endFrame>num_frames-1 or endFrame<startFrame or startFrame<0 or endFrame<0:
+                print "Invalid range or frame"
+                exit()
+            j=startFrame
+            while j<endFrame+1:
+                knobs[int(j)][knobname]=start+((j-startFrame)*toVary) #dict
+                j+=1
 
-# def frameFound(filename):
-#     toRet=False
-#     p = mdl.parseFile(filename)
-#     if p:
-#         (commands, symbols) = p
-#     else:
-#         print "Parsing failed."
-#         return
-#     for command in commands:
-#         print command
-#         c = command['op']
-#         args = command['args']
-#         if c=="frames":
-#             toRet=True
-#     return toRet
+            
 
-# def basenameFound(filename):
-#     toRet=False
-#     p = mdl.parseFile(filename)
-#     if p:
-#         (commands, symbols) = p
-#     else:
-#         print "Parsing failed."
-#         return
-#     for command in commands:
-#         print command
-#         c = command['op']
-#         args = command['args']
-#         if c=="basename":
-#             toRet=True
-#     return toRet
-    
 def run(filename):
     """
     This function runs an mdl script
@@ -142,7 +123,6 @@ def run(filename):
     color = [0, 0, 0]
     tmp = new_matrix()
     ident( tmp )
-
     stack = [ [x[:] for x in tmp] ]
     screen = new_screen()
     zbuffer = new_zbuffer()
@@ -151,103 +131,107 @@ def run(filename):
     consts = ''
     coords = []
     coords1 = []
-
     p = mdl.parseFile(filename)
 
     if p:
         (commands, symbols) = p
-        print commands
-        #print symbols
     else:
         print "Parsing failed."
         return
-    for command in commands:
-        c = command['op']
-        args = command['args']
-
-        if c == 'box':
-            if isinstance(args[0], str):
-                consts = args[0]
-                args = args[1:]
-            if isinstance(args[-1], str):
-                coords = args[-1]
-            add_box(tmp,
-                    args[0], args[1], args[2],
-                    args[3], args[4], args[5])
-            matrix_mult( stack[-1], tmp )
-            draw_polygons(tmp, screen, zbuffer, view, ambient, light, areflect, dreflect, sreflect)
-            tmp = []
-        elif c == 'sphere':
-            add_sphere(tmp,
-                       args[0], args[1], args[2], args[3], step_3d)
-            matrix_mult( stack[-1], tmp )
-            draw_polygons(tmp, screen, zbuffer, view, ambient, light, areflect, dreflect, sreflect)
-            tmp = []
-        elif c == 'torus':
-            add_torus(tmp,
-                      args[0], args[1], args[2], args[3], args[4], step_3d)
-            matrix_mult( stack[-1], tmp )
-            draw_polygons(tmp, screen, zbuffer, view, ambient, light, areflect, dreflect, sreflect)
-            tmp = []
-        elif c == 'line':
-            if isinstance(args[0], str):
-                consts = args[0]
-                args = args[1:]
-            if isinstance(args[3], str):
-                coords = args[3]
-                args = args[:3] + args[4:]
-            if isinstance(args[-1], str):
-                coords1 = args[-1]
-            add_edge(tmp,
-                     args[0], args[1], args[2], args[3], args[4], args[5])
-            matrix_mult( stack[-1], tmp )
-            draw_lines(tmp, screen, zbuffer, color)
-            tmp = []
-        elif c == 'move':
-            tmp = make_translate(args[0], args[1], args[2])
-            matrix_mult(stack[-1], tmp)
-            stack[-1] = [x[:] for x in tmp]
-            tmp = []
-        elif c == 'scale':
-            tmp = make_scale(args[0], args[1], args[2])
-            matrix_mult(stack[-1], tmp)
-            stack[-1] = [x[:] for x in tmp]
-            tmp = []
-        elif c == 'rotate':
-            theta = args[1] * (math.pi/180)
-            if args[0] == 'x':
-                tmp = make_rotX(theta)
-            elif args[0] == 'y':
-                tmp = make_rotY(theta)
+    first_pass(commands)
+    second_pass(commands,num_frames)
+    for frame in range(int(num_frames)):
+        for knob in knobs[frame]: #knob is the knobname
+            if knobs[frame][knob] is None:
+                symbols[knob][1]=1
             else:
-                tmp = make_rotZ(theta)
-            matrix_mult( stack[-1], tmp )
-            stack[-1] = [ x[:] for x in tmp]
-            tmp = []
-        elif c == 'push':
-            stack.append([x[:] for x in stack[-1]] )
-        elif c == 'pop':
-            stack.pop()
-        elif c == 'display':
-            display(screen)
-        elif c == 'save':
-            save_extension(screen, args[0])
-    #     elif c=='frames':
-    #         frameFound=True
-    #         num_frames=args
-    #         #if not basenameFound(filename):
-    #             #basename="anim"
-    #             #print "Default filename: 'anim'"
-    #     elif c=='basename':
-    #         baseFound=True
-    #         basename=args
-    #     elif c=='vary':
-    #         varyFound=True
-    #         #if not frameFound(filename):
-    #             #exit()
-    # if varyFound and not frameFound:
-    #     exit()
-    # if frameFound and not fileFound:
-    #     basename="anim"
-    #     print "Default filename: 'anim'"
-run("simple_anim.mdl")
+                symbols[knob][1]=knobs[frame][knob]
+        for command in commands:
+            c = command['op']
+            args = command['args']
+            if "knob" in command and c in ["move", "scale", "rotate"] and (not command["knob"] == None) and (not args == None):
+                args = command['args'][:]
+                knob = command["knob"]
+                for i in range(len(args)):
+                    if not isinstance(args[i], basestring):
+                        args[i] = args[i]*symbols[knob][1]
+            if c == 'box':
+                if isinstance(args[0], str):
+                    consts = args[0]
+                    args = args[1:]
+                if isinstance(args[-1], str):
+                    coords = args[-1]
+                add_box(tmp,
+                        args[0], args[1], args[2],
+                        args[3], args[4], args[5])
+                matrix_mult( stack[-1], tmp )
+                draw_polygons(tmp, screen, zbuffer, view, ambient, light, areflect, dreflect, sreflect)
+                tmp = []
+            elif c == 'sphere':
+                add_sphere(tmp,
+                           args[0], args[1], args[2], args[3], step_3d)
+                matrix_mult( stack[-1], tmp )
+                draw_polygons(tmp, screen, zbuffer, view, ambient, light, areflect, dreflect, sreflect)
+                tmp = []
+            elif c == 'torus':
+                add_torus(tmp,
+                          args[0], args[1], args[2], args[3], args[4], step_3d)
+                matrix_mult( stack[-1], tmp )
+                draw_polygons(tmp, screen, zbuffer, view, ambient, light, areflect, dreflect, sreflect)
+                tmp = []
+            elif c == 'line':
+                if isinstance(args[0], str):
+                    consts = args[0]
+                    args = args[1:]
+                if isinstance(args[3], str):
+                    coords = args[3]
+                    args = args[:3] + args[4:]
+                if isinstance(args[-1], str):
+                    coords1 = args[-1]
+                add_edge(tmp,
+                         args[0], args[1], args[2], args[3], args[4], args[5])
+                matrix_mult( stack[-1], tmp )
+                draw_lines(tmp, screen, zbuffer, color)
+                tmp = []
+            elif c == 'move':
+                tmp = make_translate(args[0], args[1], args[2])
+                matrix_mult(stack[-1], tmp)
+                stack[-1] = [x[:] for x in tmp]
+                tmp = []
+            elif c == 'scale':
+                tmp = make_scale(args[0], args[1], args[2])
+                matrix_mult(stack[-1], tmp)
+                stack[-1] = [x[:] for x in tmp]
+                tmp = []
+            elif c == 'rotate':
+                theta = args[1] * (math.pi/180)
+                if args[0] == 'x':
+                    tmp = make_rotX(theta)
+                elif args[0] == 'y':
+                    tmp = make_rotY(theta)
+                else:
+                    tmp = make_rotZ(theta)
+                matrix_mult( stack[-1], tmp )
+                stack[-1] = [ x[:] for x in tmp]
+                tmp = []
+            elif c == 'push':
+                stack.append([x[:] for x in stack[-1]] )
+            elif c == 'pop':
+                stack.pop()
+            elif c == 'display':
+                display(screen)
+            elif c == 'save':
+                save_extension(screen, args[0])
+        if num_frames>1:
+            save_extension(screen, ("./anim/" + basename + ("%03d" % int(frame)) + ".png"))
+        tmp = new_matrix()
+        ident( tmp )
+        stack = [ [x[:] for x in tmp] ]
+        screen = new_screen()
+        zbuffer = new_zbuffer()
+        tmp = []
+        step_3d = 20
+    if num_frames>1:
+        make_animation(basename)
+
+#run("simple_anim.mdl")
